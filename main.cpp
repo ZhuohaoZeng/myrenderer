@@ -3,9 +3,10 @@
 #include "tgaimage.h"
 #include "model.h"
 #include <iostream>
+#include <algorithm>
 
-constexpr int width  = 800;
-constexpr int height = 800;
+constexpr int width  = 120;
+constexpr int height = 120;
 
 constexpr TGAColor white   = {255, 255, 255, 255}; // attention, BGRA order
 constexpr TGAColor green   = {  0, 255,   0, 255};
@@ -40,36 +41,40 @@ void drawLine(int startX, int startY, int endX, int endY, TGAImage &frameBuffer,
 }
 
 void drawTriangle(int ax, int ay, int bx, int by, int cx, int cy, TGAImage &framebuffer, TGAColor color) {
-    drawLine(ax, ay, bx, by, framebuffer, color);
-    drawLine(bx, by, cx, cy, framebuffer, color);
-    drawLine(cx, cy, ax, ay, framebuffer, color);
+    if (ay>by) { std::swap(ax, bx); std::swap(ay, by); }
+    if (ay>cy) { std::swap(ax, cx); std::swap(ay, cy); }
+    if (by>cy) { std::swap(bx, cx); std::swap(by, cy); }
+    int totalHeight = cy - ay;
+    if (ay != by)// avoid situation where two line overlapped
+    {
+        int halfHeight = by - ay;
+        for (int y = ay; y <= by; ++y)
+        {
+            int x1 = ax + ( (cx - ax) * (y - ay) ) / totalHeight;//This calculate the point on the line from ax to cx but only until the height of bx
+            int x2 = ax + ( (bx - ax) * (y - ay) ) / halfHeight;//This calculate the point on the line from ax to bx
+            if(x1 > x2) std::swap(x1, x2); // ensucre x1 is the left bound and x2 is the y bound
+            for (int i = x1; i <= x2; ++i) framebuffer.set(i, y, color);
+        }
+    }
+    if (cy != by)
+    {
+        int halfHeight = cy - by;
+        for (int y = by; y <= cy; ++y)
+        {
+            int x1 = ax + ( (cx - ax) * (y - ay) ) / totalHeight;//This calculate the point on the line from ax to cx but start at the height of bx
+            int x2 = bx + ( (cx - bx) * (y - by) ) / halfHeight;//This calculate the point on the line from ax to bx
+            if(x1 > x2) std::swap(x1, x2); // ensucre x1 is the left bound and x2 is the y bound
+            for (int i = x1; i <= x2; ++i) framebuffer.set(i, y, color);
+        }
+    }
 }
 
-std::tuple<double, double> project(vec3 in)
-{
-    return {(in.x + 1.) * width  / 2,
-            (in.y + 1.) * height / 2};
-}
 
 int main(int argc, char** argv) {
-    if (argc != 2) {
-        std::cerr << "Usage: " << argv[0] << " obj/model.obj" << std::endl;
-        return 1;
-    }
     TGAImage framebuffer(width, height, TGAImage::RGB);
-    model m{argv[1]};
-    for (int i = 0; i < m.nfaces(); ++i)//draw triangle faces
-    {
-        auto [ax, ay] = project(m.vert(i, 0));
-        auto [bx, by] = project(m.vert(i, 1));
-        auto [cx, cy] = project(m.vert(i, 2));
-        drawTriangle(ax, ay, bx, by, cx, cy, framebuffer, green);
-    }
-    for (int i = 0; i < m.nverts(); ++i)//draw vertices
-    {
-        auto [a, b] = project(m.vert(i));
-        framebuffer.set(a, b, white);
-    }
+    drawTriangle(  7, 45, 35, 100, 45,  60, framebuffer, red);
+    drawTriangle(120, 35, 90,   5, 45, 110, framebuffer, white);
+    drawTriangle(115, 83, 80,  90, 85, 120, framebuffer, blue);
     
     framebuffer.write_tga_file("framebuffer.tga");
     return 0;
