@@ -5,8 +5,8 @@
 #include <iostream>
 #include <algorithm>
 
-constexpr int width  = 120;
-constexpr int height = 120;
+constexpr int width  = 800;
+constexpr int height = 800;
 
 constexpr TGAColor white   = {255, 255, 255, 255}; // attention, BGRA order
 constexpr TGAColor green   = {  0, 255,   0, 255};
@@ -41,7 +41,7 @@ void drawLine(int startX, int startY, int endX, int endY, TGAImage &frameBuffer,
 }
 
 double signedTriangleArea(int ax, int ay, int bx, int by, int cx, int cy) {
-    return abs(ax * (by -cy) + bx * (cy - ay) + cx * (ay - by));
+    return ax * (by -cy) + bx * (cy - ay) + cx * (ay - by);
 }
 
 void drawTriangle(int ax, int ay, int bx, int by, int cx, int cy, TGAImage &framebuffer, TGAColor color)
@@ -51,28 +51,42 @@ void drawTriangle(int ax, int ay, int bx, int by, int cx, int cy, TGAImage &fram
     int bottom = std::min(std::min(ay, by), cy);
     int top = std::max(std::max(ay, by), cy);
     double sarea = signedTriangleArea(ax, ay, bx, by, cx, cy);
+    if (sarea<1) return;
     for (int x = left; x <= right; ++x)
     {
         for (int y = bottom; y <= top; ++y)
         {
             //using baycentric coordinate to check if this point is in the triangle.
-            double l1 = signedTriangleArea(x, y, bx, by, cx, cy);
-            double l2 = signedTriangleArea(ax, ay, x, y, cx, cy);
-            double l3 = signedTriangleArea(ax, ay, bx, by, x, y);
-            if ((l1 + l2 + l3) <= sarea)
-            {
-                framebuffer.set(x, y, color);
-            }
+            double l1 = signedTriangleArea(x, y, bx, by, cx, cy) / sarea;
+            double l2 = signedTriangleArea(ax, ay, x, y, cx, cy) / sarea;
+            double l3 = signedTriangleArea(ax, ay, bx, by, x, y) / sarea;
+            if (l1 < 0 || l2 < 0 || l3 < 0) continue;
+            framebuffer.set(x, y, color);
         }
     }
 }
 
+std::tuple<double, double> project(vec3 in)
+{
+    return {(in.x + 1.) * width  / 2,
+            (in.y + 1.) * height / 2};
+}
 
 int main(int argc, char** argv) {
+    if (argc != 2) {
+        std::cerr << "Usage: " << argv[0] << " obj/model.obj" << std::endl;
+        return 1;
+    }
+    model model{argv[1]};
     TGAImage framebuffer(width, height, TGAImage::RGB);
-    drawTriangle(  7, 45, 35, 100, 45,  60, framebuffer, red);
-    drawTriangle(120, 35, 90,   5, 45, 110, framebuffer, white);
-    drawTriangle(115, 83, 80,  90, 85, 120, framebuffer, blue);
+    for (int i=0; i<model.nfaces(); i++) { // iterate through all triangles
+        auto [ax, ay] = project(model.vert(i, 0));
+        auto [bx, by] = project(model.vert(i, 1));
+        auto [cx, cy] = project(model.vert(i, 2));
+        TGAColor rnd;
+        for (int c=0; c<3; c++) rnd[c] = std::rand()%255;
+        drawTriangle(ax, ay, bx, by, cx, cy, framebuffer, rnd);
+    }
     
     framebuffer.write_tga_file("framebuffer.tga");
     return 0;
