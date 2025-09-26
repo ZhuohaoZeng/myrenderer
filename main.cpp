@@ -40,31 +40,29 @@ void drawLine(int startX, int startY, int endX, int endY, TGAImage &frameBuffer,
     }
 }
 
-void drawTriangle(int ax, int ay, int bx, int by, int cx, int cy, TGAImage &framebuffer, TGAColor color) {
-    if (ay>by) { std::swap(ax, bx); std::swap(ay, by); }
-    if (ay>cy) { std::swap(ax, cx); std::swap(ay, cy); }
-    if (by>cy) { std::swap(bx, cx); std::swap(by, cy); }
-    int totalHeight = cy - ay;
-    if (ay != by)// avoid situation where two line overlapped
+double signedTriangleArea(int ax, int ay, int bx, int by, int cx, int cy) {
+    return abs(ax * (by -cy) + bx * (cy - ay) + cx * (ay - by));
+}
+
+void drawTriangle(int ax, int ay, int bx, int by, int cx, int cy, TGAImage &framebuffer, TGAColor color)
+{
+    int left = std::min(std::min(ax, bx), cx);
+    int right = std::max(std::max(ax, bx), cx);
+    int bottom = std::min(std::min(ay, by), cy);
+    int top = std::max(std::max(ay, by), cy);
+    double sarea = signedTriangleArea(ax, ay, bx, by, cx, cy);
+    for (int x = left; x <= right; ++x)
     {
-        int halfHeight = by - ay;
-        for (int y = ay; y <= by; ++y)
+        for (int y = bottom; y <= top; ++y)
         {
-            int x1 = ax + ( (cx - ax) * (y - ay) ) / totalHeight;//This calculate the point on the line from ax to cx but only until the height of bx
-            int x2 = ax + ( (bx - ax) * (y - ay) ) / halfHeight;//This calculate the point on the line from ax to bx
-            if(x1 > x2) std::swap(x1, x2); // ensucre x1 is the left bound and x2 is the y bound
-            for (int i = x1; i <= x2; ++i) framebuffer.set(i, y, color);
-        }
-    }
-    if (cy != by)
-    {
-        int halfHeight = cy - by;
-        for (int y = by; y <= cy; ++y)
-        {
-            int x1 = ax + ( (cx - ax) * (y - ay) ) / totalHeight;//This calculate the point on the line from ax to cx but start at the height of bx
-            int x2 = bx + ( (cx - bx) * (y - by) ) / halfHeight;//This calculate the point on the line from ax to bx
-            if(x1 > x2) std::swap(x1, x2); // ensucre x1 is the left bound and x2 is the y bound
-            for (int i = x1; i <= x2; ++i) framebuffer.set(i, y, color);
+            //using baycentric coordinate to check if this point is in the triangle.
+            double l1 = signedTriangleArea(x, y, bx, by, cx, cy);
+            double l2 = signedTriangleArea(ax, ay, x, y, cx, cy);
+            double l3 = signedTriangleArea(ax, ay, bx, by, x, y);
+            if ((l1 + l2 + l3) <= sarea)
+            {
+                framebuffer.set(x, y, color);
+            }
         }
     }
 }
