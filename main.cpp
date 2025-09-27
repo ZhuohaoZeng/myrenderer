@@ -44,7 +44,7 @@ double signedTriangleArea(int ax, int ay, int bx, int by, int cx, int cy) {
     return ax * (by -cy) + bx * (cy - ay) + cx * (ay - by);
 }
 
-void drawTriangle(int ax, int ay, int bx, int by, int cx, int cy, TGAImage &framebuffer, TGAColor color)
+void drawTriangle(int ax, int ay, int az, int bx, int by, int bz, int cx, int cy, int cz, TGAImage &framebuffer, TGAImage &zbuffer, TGAColor color)
 {
     int left = std::min(std::min(ax, bx), cx);
     int right = std::max(std::max(ax, bx), cx);
@@ -61,15 +61,19 @@ void drawTriangle(int ax, int ay, int bx, int by, int cx, int cy, TGAImage &fram
             double beta = signedTriangleArea(ax, ay, x, y, cx, cy) / sarea;
             double gamma = signedTriangleArea(ax, ay, bx, by, x, y) / sarea;
             if (alpha < 0 || beta < 0 || gamma < 0) continue;
+            unsigned char z = static_cast<unsigned char>(alpha * az + beta * bz + gamma * cz);//represents the depth of current pixel 
+            if (z < zbuffer.get(x, y)[0]) continue;
             framebuffer.set(x, y, color);
+            zbuffer.set(x, y, {z});
         }
     }
 }
 
-std::tuple<double, double> project(vec3 in)
+std::tuple<double, double, double> project(vec3 in)
 {
     return {(in.x + 1.) * width  / 2,
-            (in.y + 1.) * height / 2};
+            (in.y + 1.) * height / 2,
+            (in.z + 1.) * 255 / 2};
 }
 
 int main(int argc, char** argv) {
@@ -79,16 +83,18 @@ int main(int argc, char** argv) {
     }
     model model{argv[1]};
     TGAImage framebuffer(width, height, TGAImage::RGB);
+    TGAImage zbuffer(width, height, TGAImage::GRAYSCALE);
     for (int i=0; i<model.nfaces(); i++) { // iterate through all triangles
-        auto [ax, ay] = project(model.vert(i, 0));
-        auto [bx, by] = project(model.vert(i, 1));
-        auto [cx, cy] = project(model.vert(i, 2));
+        auto [ax, ay, az] = project(model.vert(i, 0));
+        auto [bx, by, bz] = project(model.vert(i, 1));
+        auto [cx, cy, cz] = project(model.vert(i, 2));
         TGAColor rnd;
         for (int c=0; c<3; c++) rnd[c] = std::rand()%255;
-        drawTriangle(ax, ay, bx, by, cx, cy, framebuffer, rnd);
+        drawTriangle(ax, ay, az, bx, by, bz, cx, cy, cz, framebuffer, zbuffer, rnd);
     }
     
     framebuffer.write_tga_file("framebuffer.tga");
+    zbuffer.write_tga_file("zbuffer.tga");
     return 0;
 }
 

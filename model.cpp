@@ -38,19 +38,6 @@ model::model(const std::string filename)
             }
         }
     }
-    std::vector<int> idx(nfaces());
-    for (int i = 0; i < nfaces(); ++i) idx[i] = i;
-    std::sort(idx.begin(), idx.end(), [&](const int& a, const int& b){
-        double aMinZ = std::min(std::min(vert(a, 0).z, vert(a, 1).z), vert(a, 2).z);
-        double bMinZ = std::min(std::min(vert(b, 0).z, vert(b, 1).z), vert(b, 2).z);
-        return aMinZ < bMinZ;
-    });
-    std::vector<int> faces2(nfaces() * 3);
-    for (int i = 0; i < nfaces(); ++i)
-    {
-        for (int j = 0; j < 3; ++j) faces2[i * 3 + j] = faces[idx[i] * 3 + j];
-    }
-    faces = faces2;
     std::cout << "verts: " <<verts.size() << std::endl;
     std::cout << "faces: " <<faces.size() << std::endl;
 }
