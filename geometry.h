@@ -1,6 +1,10 @@
 #include <ostream>
 #include <cassert>
 
+#pragma once
+#ifndef TINY_GEOMETRY_H_
+#define TINY_GEOMETRY_H_
+
 template<int n> struct vec {
     double data[n]{0};
     double& operator[](const int i)       {assert(i >= 0 && i <= n); return data[i];}
@@ -222,3 +226,5 @@ template<> struct dt<1> {   // template specialization to stop the recursion
         return src[0][0];
     }
 };
+
+#endif // TINY_GEOMETRY_H_
