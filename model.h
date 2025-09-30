@@ -1,6 +1,10 @@
 #include <vector>
 #include "geometry.h"
 
+#pragma once
+#ifndef MODEL_H_
+#define MODEL_H_
+
     class model {
     private:
         std::vector<vec3> verts{};
@@ -12,3 +16,5 @@
         vec3 vert(const int i) const;                          // 0 <= i < nverts()
         vec3 vert(const int iface, const int nthvert) const;
     };
+
+#endif

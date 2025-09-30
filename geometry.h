@@ -2,8 +2,8 @@
 #include <cassert>
 
 #pragma once
-#ifndef TINY_GEOMETRY_H_
-#define TINY_GEOMETRY_H_
+#ifndef GEOMETRY_H_
+#define GEOMETRY_H_
 
 template<int n> struct vec {
     double data[n]{0};
