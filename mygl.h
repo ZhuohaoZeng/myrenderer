@@ -11,6 +11,10 @@ void initViewport(const int x, const int y, const int w, const int h);
 void initZbuffer(const int width, const int height);
 
 struct IShader {
+    static TGAColor sample2D(const TGAImage &img, const vec2 &ucf)
+    {
+        return img.get(ucf[0] * img.width(), ucf[1] * img.height());
+    }
     virtual std::pair<bool,TGAColor> fragment(const vec3 bar) const = 0;
 };
 
